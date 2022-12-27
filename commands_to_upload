@@ -1,0 +1,7 @@
+Start in wetools directory:
+
+$ python3 -m build
+
+May want to only upload the most recent version:
+
+python3 -m twine upload dist/*
