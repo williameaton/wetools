@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.backends.backend_pdf
 import obspy
 from obspy.core.trace import Trace
-from obspy.core.stream import Stream
-
 
 def moving_avg(f, time=[], half_window=1000, convert_t=False):
     # =====================================================================================================================================
@@ -55,11 +54,18 @@ def normalise(x):
     return x/np.amax(np.abs(x))
 
 
+# ------------------------- OBSPY  <--> NUMPY -------------------------
+
+def data_to_trace(dt, d):
+    # Creates trace given data and timestep
+    tr = obspy.Trace()
+    tr.data = d
+    tr.stats.delta = dt
+    return tr
 
 
-
-# Converts obspy trace into x and y for mpl plotting
 def obspy_gen_mpl(tr):
+    # Converts obspy trace into x and y for mpl plotting
     x = np.linspace(0, tr.stats.npts*tr.stats.delta,  tr.stats.npts)
     y = tr.data
     return x,y
@@ -67,15 +73,26 @@ def obspy_gen_mpl(tr):
 
 def plot_obspy_MPL(tr):
     x, y = obspy_gen_mpl(tr)
-
     fig, ax = plt.subplots()
     ax.plot(x,y)
-    return fig
+    return fig, ax
 
 
-def calc_offset(src_lat, src_lon, stn_lat, stn_lon, geoco=1):
-    # Using formula:
-    # \Delta = acos(sin(src_lon)*sin(stn_lon) + cos(src_lon)*cos(stn_lon)*con(abs(src_lat - stn_lat)))
+# ---------------------- GLOBAL SEISMOLOGY UTILITIES ---------------------
+
+
+def calc_src_stn_offset(src_lat, src_lon, stn_lat, stn_lon, geoco=1):
+    """
+    Computes offset between station and source using formula
+    $\Delta = acos(sin(src_lon)*sin(stn_lon) + cos(src_lon)*cos(stn_lon)*con(abs(src_lat - stn_lat)))$
+    Geoco allows for flattening variations.
+    :param src_lat (float): Source latitude
+    :param src_lon (float): Source longitude
+    :param stn_lat (float): Station latitude
+    :param stn_lon (float): Station longitude
+    :param geoco   (float): Planetary flattening.
+    :return: offset (float)
+    """
     pi = np.pi
     theta_src = (pi / 2) - np.arctan(geoco * np.tan(src_lat * pi / 180))  # Source colatitude
     theta_stn = (pi / 2) - np.arctan(geoco * np.tan(stn_lat * pi / 180))  # Station colatitude
@@ -90,14 +107,6 @@ def calc_offset(src_lat, src_lon, stn_lat, stn_lon, geoco=1):
 
     return offset
 
-
-
-def save_figs_pdf(figs, pdf_name):
-    import matplotlib.backends.backend_pdf
-    pdf = matplotlib.backends.backend_pdf.PdfPages(pdf_name)
-    for fig in figs:
-        pdf.savefig(fig)
-    pdf.close()
 
 
 
@@ -115,7 +124,6 @@ def rotate_stream(stream,  method, src, stn, geoco=1, overwrite_channel_names=Fa
     elif len(stream) > 3:
         print(f"Too many channels...")
         return 1
-
 
     # Get station coordinates:
     lat_stn = stn[0]
@@ -277,31 +285,6 @@ def bandpass_synth(d, fmin, fmax):
 
 
 
-def STF_convolve(data_dt, data, stf_t, stf, timeshift=0.):
-
-    # Ensure resampling of the STF to the data timestep:
-    tr = obspy.Trace()
-    tr.data = stf
-    tr.stats.delta = np.mean(stf_t[1:] - stf_t[:-1])                      # Mean timestep - assumes constant timestepping.
-    tr.resample(1/data_dt)  # resample at data freq
-
-    # Resampled value:
-    stf_rs = tr.data
-    stf_rs_t = np.linspace(stf_t[0], stf_t[-1], tr.stats.npts)
-
-    conv       = np.convolve(data, stf_rs, mode="same")                      # Convolve signal
-    time_conv  = np.arange(len(conv))*data_dt  + timeshift                # Generate corresponding convolution time array
-
-    output     = np.transpose(np.array([time_conv, conv]))                # Collate data into 2D array
-    #output     = output[int(np.floor(len(stf_rs_t)/2)):, :]                  # Slice lower end of array
-    #output     = output[:-len(stf_rs_t), :]                                  # Slice upper end of array
-
-    return output
-
-
-
-
-
 def gauss_STF_convolve(time, data, half_duration, alpha=1.628):
     dt        = time[1] - time[0]                                        # Timestep (assumes a regularly spaced dt)
 
@@ -345,50 +328,8 @@ def gen_gaussian(dt, hdur, alpha=1.628):
     return stf_t, stf
 
 
-def pad_by_time(side, timeval, time, f, pad_time_bool=True):
-    # Pad time series f (1D) with a certain number of seconds of zeros:
 
-    dt = np.mean(time[1:] - time[:-1])
-
-    pad_len = int(np.ceil(timeval/dt))
-    print(f'Pad size: {pad_len}')
-    pad_lower = np.zeros(pad_len)
-    pad_upper = np.zeros(pad_len)
-
-    tpad = (1+ np.arange(pad_len)) *dt
-    tpad_lower = time[0] - tpad[::-1]
-    tpad_upper = tpad + time[-1]
-
-    if side == 'upper':
-        pad_lower = []
-        tpad_lower = []
-    elif side == 'lower':
-        pad_upper = []
-        tpad_upper = []
-    elif side == 'both':
-        pass
-    else:
-        raise ValueError("side must be 'upper', 'lower' or 'both' ")
-
-    # Pad the data
-    f_new    = np.concatenate((pad_lower, f, pad_upper))
-    if pad_time_bool:
-        t = np.concatenate((tpad_lower, time, tpad_upper))
-        return t, f_new, pad_len
-    else:
-        return f_new, pad_len
-
-
-
-
-def data_to_trace(dt, d):
-    tr = obspy.Trace()
-    tr.data = d
-    tr.stats.delta = dt
-    return tr
-
-
-
+# ----------------------------- UNIT CONVERSIONS -----------------------------
 
 
 
@@ -404,6 +345,9 @@ def ms2_to_microgal(x):
 def ms2_to_nanogal(x):
     return (x/0.01)*1e9
 
+
+
+# ----------------------------- DATA PROCESSING -----------------------------
 
 
 
@@ -449,3 +393,158 @@ def filter_timeseries(t, d, type, freq, zerophase, corners):
     x += t[0]
 
     return x,y
+
+
+
+def pad_by_time(side, timeval, time, f, pad_time_bool=True):
+    # Pad time series f (1D) with a certain number of seconds of zeros:
+
+    dt = np.mean(time[1:] - time[:-1])
+
+    pad_len = int(np.ceil(timeval/dt))
+    print(f'Pad size: {pad_len}')
+    pad_lower = np.zeros(pad_len)
+    pad_upper = np.zeros(pad_len)
+
+    tpad = (1+ np.arange(pad_len)) *dt
+    tpad_lower = time[0] - tpad[::-1]
+    tpad_upper = tpad + time[-1]
+
+    if side == 'upper':
+        pad_lower = []
+        tpad_lower = []
+    elif side == 'lower':
+        pad_upper = []
+        tpad_upper = []
+    elif side == 'both':
+        pass
+    else:
+        raise ValueError("side must be 'upper', 'lower' or 'both' ")
+
+    # Pad the data
+    f_new    = np.concatenate((pad_lower, f, pad_upper))
+    if pad_time_bool:
+        t = np.concatenate((tpad_lower, time, tpad_upper))
+        return t, f_new, pad_len
+    else:
+        return f_new, pad_len
+
+
+
+def STF_convolve(data_dt, data, stf_t, stf, timeshift=0.):
+
+    # Ensure resampling of the STF to the data timestep:
+    tr = obspy.Trace()
+    tr.data = stf
+    tr.stats.delta = np.mean(stf_t[1:] - stf_t[:-1])                      # Mean timestep - assumes constant timestepping.
+    tr.resample(1/data_dt)  # resample at data freq
+
+    # Resampled value:
+    stf_rs = tr.data
+    stf_rs_t = np.linspace(stf_t[0], stf_t[-1], tr.stats.npts)
+
+    conv       = np.convolve(data, stf_rs, mode="same")                      # Convolve signal
+    time_conv  = np.arange(len(conv))*data_dt  + timeshift                # Generate corresponding convolution time array
+
+    output     = np.transpose(np.array([time_conv, conv]))                # Collate data into 2D array
+    #output     = output[int(np.floor(len(stf_rs_t)/2)):, :]                  # Slice lower end of array
+    #output     = output[:-len(stf_rs_t), :]                                  # Slice upper end of array
+
+    return output
+
+
+
+
+
+# ---------------------------- PLOTTING
+
+def save_figs_pdf(figs, pdf_name):
+    """
+    Saves a list of figures in a single PDF
+    :param figs (list of mpl figs): List of Matplotlib figure objects
+    :param pdf_name (string): File name
+    """
+    # add suffix if needed
+    if pdf_name[-4:]!='.pdf':
+        pdf_name += '.pdf'
+    # save to pdf
+    pdf = matplotlib.backends.backend_pdf.PdfPages(pdf_name)
+    for fig in figs:
+        pdf.savefig(fig)
+    pdf.close()
+
+
+
+
+def map_csb_to_xyz(xi, eta ,r, kappa):
+    # Maps cubed sphere (xi, eta, r, kappa) to cartesian (x, y, z) coords
+    # See details in: https://doi.org/10.1111/j.1365-246X.2011.05190.x
+
+    for val in xi, eta:
+        if np.logical_or((val <-np.pi/4).any(), (val>np.pi/4).any()):
+            raise ValueError('Either xi or eta is outside of range +- pi/4')
+
+    s = (1 + np.tan(xi)**2 + np.tan(eta)**2 )**0.5
+
+    teta =  np.tan(eta)
+    mtxi = -np.tan(xi)
+
+    if kappa == 1:
+        x =teta
+        y = -1
+        z = mtxi
+    elif kappa ==2:
+        x = -1
+        y = mtxi
+        z = teta
+    elif kappa == 3:
+        x = teta
+        y = mtxi
+        z = 1
+    elif kappa == 4:
+        x = mtxi
+        y = teta
+        z = -1
+    elif kappa == 5:
+        x = 1
+        y = teta
+        z = mtxi
+    elif kappa == 6:
+        x = mtxi
+        y = 1
+        z = teta
+
+    return x*r/s , y*r/s, z*r/s
+
+
+def map_xyz_to_csb(x,y,z, kk):
+    # Maps cartesian (x,y,z,k) to cubed sphere xi, eta, r
+    # See details in: https://doi.org/10.1111/j.1365-246X.2011.05190.x
+    #TODO: Speak to FJS regarding points that share max values.
+    t = max([np.abs(x),np.abs(y),np.abs(z)])
+    if   t==-y and kk==1:
+        kappa = 1
+        xi    = np.arctan(z/y)
+        eta   = np.arctan(-x/y)
+    elif t==-x and kk==2:
+        kappa = 2
+        xi    = np.arctan(y/x)
+        eta   = np.arctan(-z/x)
+    elif t==z and kk==3:
+        kappa = 3
+        xi    = np.arctan(-y/z)
+        eta   = np.arctan(x/z)
+    elif t==-z and kk==4:
+        kappa = 4
+        xi    = np.arctan(x/z)
+        eta   = np.arctan(-y/z)
+    elif t == x and kk==5:
+        kappa = 5
+        xi = np.arctan(-z/x)
+        eta = np.arctan(y/x)
+    elif t == y and kk==6:
+        kappa = 6
+        xi = np.arctan(-x/y)
+        eta = np.arctan(z/y)
+    r = (x ** 2 + y ** 2 + z ** 2) ** 0.5
+    return xi, eta, r, kappa
