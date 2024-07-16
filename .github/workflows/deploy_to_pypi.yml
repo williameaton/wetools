@@ -31,9 +31,9 @@ jobs:
 
       - name: Store the distribution packages
         uses: actions/upload-artifact@v3
-          with:
-            name: python-package-distributions
-            path: dist/
+        with:
+          name: python-package-distributions
+          path: dist/
 
 
 #      - name: Publish distribution 📦 to Test PyPI
