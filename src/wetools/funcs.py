@@ -4,6 +4,8 @@ import matplotlib.backends.backend_pdf
 import obspy
 from obspy.core.trace import Trace
 
+# NEW FUNC
+
 def moving_avg(f, time=[], half_window=1000, convert_t=False):
     # =====================================================================================================================================
     # DESCRIPTION:
