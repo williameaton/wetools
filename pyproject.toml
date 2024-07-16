@@ -1,7 +1,13 @@
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = [
+    "setuptools >= 65",
+    "setuptools_scm[toml]",
+    "wheel"]
+build-backend = "setuptools.build_meta"
 
+[tool.setuptools_scm]
+write_to = "src/wetools/_version.py"
+version_scheme = "release-branch-semver"
 
 [project]
 name = "wetools"
@@ -24,7 +30,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-
 
 
 [project.urls]
