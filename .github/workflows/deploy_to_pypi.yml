@@ -10,7 +10,7 @@ jobs:
       matrix:
         python-version: [ "3.9" ]
     permissions:
-      id-token: write  # IMPORTANT: this permssion is mandatory for PyPI trusted
+      id-token: write  # IMPORTANT: this permission is mandatory for PyPI trusted
 
     steps:
       - name: Start actions
