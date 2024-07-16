@@ -1,8 +1,8 @@
 name: Deploy to testPyPi
 on:
-  push
-
-
+  push:
+    tags:
+      - "*"
 jobs:
   build-n-publish:
     runs-on: ubuntu-latest
