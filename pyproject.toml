@@ -6,12 +6,12 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
-write_to = "src/wetools/_hello.py"
+write_to = "src/wetools/_version.py"
 hello_scheme = "release-branch-semver"
 
 [project]
 name = "wetools"
-version = "1.0.5"
+version = "1.0.6"
 authors = [
   { name="W Eaton", email="weaton@princeton.edu" },
 ]
