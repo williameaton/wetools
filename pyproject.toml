@@ -11,7 +11,7 @@ hello_scheme = "release-branch-semver"
 
 [project]
 name = "wetools"
-version = "1.0.4"
+version = "1.0.5"
 authors = [
   { name="W Eaton", email="weaton@princeton.edu" },
 ]
