@@ -8,7 +8,8 @@ on:
     - '*'
 
 jobs:
-  build-n-publish:
+  build:
+    name: Build distribution 📦
     runs-on: ubuntu-latest
     strategy:
       matrix:
