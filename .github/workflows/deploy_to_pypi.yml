@@ -1,8 +1,11 @@
-name: Deploy to testPyPi
+name: PyPi
 on:
   push:
     tags:
-      - "*"
+    - '*'
+  pull_request:
+    tags:
+    - '*'
 
 jobs:
   build-n-publish:
