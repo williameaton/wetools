@@ -61,5 +61,5 @@ echo "$v1" > pyproject.toml
 # Add to the commit
 git add pyproject.toml
 
-git commit -m $MESSAGE
-git tag -a -m $MESSAGE $NEW_VERSION
+git commit -m "$MESSAGE"
+git tag -a -m "$MESSAGE" $NEW_VERSION
