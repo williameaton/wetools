@@ -22,16 +22,15 @@ def setup_we_mpl(create_example=False):
 
     # Set my custom default colourscheme currently Medium contrast
     # ignoring white and reverse order
-    clrs = hex.Hexes().hex['MedContrast_PT'][1:]
-    clrs = clrs[::-1]
+    # I then do a leapfrog so that you cycle through a bit faster
+    clrs = hex.Hexes().hex['MedContrast_PT'][1::][::-1]
+    c2 =  clrs[::2]+  clrs[1::2]
     m["axes.prop_cycle"] = cycler(color=clrs)
 
     if create_example:
         fig, ax = plt.subplots(2,2)
         x = np.linspace(0, 2*np.pi, 1000)
-        for i in range(6):
+        for i in range(5):
             ax[0,0].plot(x, np.sin(x*(i+1)))
         plt.show()
     return m
-
-
