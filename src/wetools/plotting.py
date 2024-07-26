@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from cycler import cycler
 from colour_schemes import hex
 
+
 def save_figs_to_single_pdf(figlist, pdf_name):
     pdf = matplotlib.backends.backend_pdf.PdfPages(pdf_name)
     for fig in figlist:
@@ -13,13 +14,17 @@ def save_figs_to_single_pdf(figlist, pdf_name):
 
 
 
-def subplots_hide_xaxes(ax, nrows, ncols, keep_lowest=True):
+def subplots_hide_xaxes(ax, nrows, ncols, keep_lowest=True, keep=[]):
     if keep_lowest:
-        nrows -=1
+        keep.append(nrows-1)
+
     for irow in range(nrows):
         for icol in range(ncols):
-            ax[irow, icol].spines['bottom'].set_visible(False)
-            ax[irow, icol].set_xticks([])
+            if irow in keep:
+                pass
+            else:
+                ax[irow, icol].spines['bottom'].set_visible(False)
+                ax[irow, icol].set_xticks([])
 
 
 
@@ -42,8 +47,6 @@ def setup_we_mpl(create_example=False):
     m["legend.framealpha"]   = 1.0
     m["legend.facecolor"]    = 'white'
     m["legend.edgecolor"]    = 'black'
-
-    print(m)
 
     # Set my custom default colourscheme currently Medium contrast
     # ignoring white and reverse order
