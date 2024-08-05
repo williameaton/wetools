@@ -71,5 +71,12 @@ def setup_we_mpl(create_example=False):
         plt.show()
     return m
 
+
+def align_y_labels(ax, nrows, coord=-0.2):
+    for i in range(nrows):
+        ax[i, 0].yaxis.set_label_coords(coord, 0.5)
+
+
+
 if __name__ == "__main__":
     setup_we_mpl(create_example=True)

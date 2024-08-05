@@ -75,3 +75,24 @@ def delaz(eplat,eplong,stlat,stlong, geoco = 0.993277):
         azep= azep + 360.0
     return  delta, azep, azst
 
+
+def lon_dist_at_lat(lat, rad=6371, geoco=1):
+    # Computes distance of 1 degree of longitude at a given latitude:
+    colat = np.pi/2 - np.deg2rad(lat)
+    if geoco == 1:
+        return  2 * np.pi * rad*np.sin(colat)/360
+    else:
+        raise ValueError()
+
+def dist_lon_at_lat(dist, lat, rad=6371, geoco=1):
+    # Computes angular (longitude) distance for a given distance along the surface at given lat
+    # Distance should be in km
+    colat = np.pi/2 - np.deg2rad(lat)
+
+    if geoco == 1:
+        # This is the distance of 1 degree of latitude
+        lat1 = 2 * np.pi * rad*np.sin(colat)/360
+        return dist/lat1
+    else:
+        raise ValueError()
+
